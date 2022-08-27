@@ -1,0 +1,26 @@
+<% layout('layouts/boilerplate')%>
+
+<div class="d-flex align-items-center justify-content-center mb-3">
+    <h1>Welcome to GoingBananasV2</h1>
+</div>
+<div class="d-flex align-items-center justify-content-center">
+    <% if(!currentUser) {%>
+        <div class="col-md-6 text-center">
+            <h3>Already have an account?</h3>
+            <a href="/login" class="btn btn-warning">Login</a>
+        </div>
+        <div class="col-md-6 text-center">
+            <h3>New Here? Register Below!</h3>
+            <a href="/register" class="btn btn-warning">Register</a>
+        </div>
+    <% } else { %>
+    <div class="col-md-6 text-center">
+        <h3>Do a Bananatest Right now!</h3>
+        <a href="/bananatest" class="btn btn-warning">BananaTest</a>
+    </div>
+    <div class="col-md-6 text-center">
+        <h3>Check Your Post history</h3>
+        <a href="/posts" class="btn btn-warning">Your Posts</a>
+    </div>
+    <% } %>
+</div>
