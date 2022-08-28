@@ -13,12 +13,14 @@ const Banana = require('./models/bananadata');
 const session = require('express-session');
 const flash = require('connect-flash');
 const ExpressError = require('./utils/ExpressError');
-const imageClassification = require('./utils/MachineMagic');
+//const imageClassification = require('./utils/MachineMagic');
 const fsExtra = require('fs-extra')
 const User = require("./models/user");
 const {isLoggedIn} = require("./middleware");
 const catchAsync = require("./utils/catchAsync");
 const uuid = require('uuid');
+
+const MachineMagic = require("./machineMagic/pyintegrationv31");
 
 const multer = require('multer');
 
@@ -313,7 +315,7 @@ app.post('/bananatest', uuidInSession, isLoggedIn, uploadLocal.single('image'), 
             console.log("header check 2.2:");
             console.log(res.headersSent);
             
-            const ripeness = await imageClassification(`uploads/${imageName}`);
+            const ripeness = await MachineMagic.imageClassification(`../uploads/${imageName}`);
             /*
             const ripeness = [
                 { className: 'banana', probability: 0.99310702085495 },
@@ -322,7 +324,7 @@ app.post('/bananatest', uuidInSession, isLoggedIn, uploadLocal.single('image'), 
               ];
               */
 
-            console.log(ripeness); 
+            console.log("ripeness val aft return: " + ripeness); 
 
             //deletes image after checking is complete
             console.log("header check 3:");
@@ -337,7 +339,7 @@ app.post('/bananatest', uuidInSession, isLoggedIn, uploadLocal.single('image'), 
 
             console.log("prediction assignment in process");
             
-            const prediction = ripeness[0].className || "prediction error";
+            const prediction = ripeness || "prediction error";
             console.log("prediction" + prediction);
 
             console.log("bananadatapoint generation");
@@ -472,7 +474,7 @@ app.use((err, req, res, next) => {
     res.status(statusCode).render('error', { err })
 })
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 4000;
 app.listen(port, () => {
     console.log(`Serving on port ${port}`)
 });

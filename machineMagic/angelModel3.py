@@ -10,13 +10,12 @@ CLASSES = [' freshripe',' freshunripe',' overripe',' ripe',' rotten',' unripe']
 IMG_WIDTH, IMG_HEIGHT = 224, 224
 
 # loaded_model = load_model(FRUIT+'_model')
-json_file = open(FRUIT+'_model.json', 'r')
+json_file = open(sys.argv[2], 'r')
 loaded_model_json = json_file.read()
 json_file.close()
 
 loaded_model = models.model_from_json(loaded_model_json)
-loaded_model.load_weights(FRUIT+"_weights.h5")
-
+loaded_model.load_weights(sys.argv[3])
 def preprocess(img_path):
     img = load_img(img_path, target_size = (IMG_WIDTH, IMG_HEIGHT))
     img = img_to_array(img)
