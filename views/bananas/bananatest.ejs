@@ -1,22 +1,21 @@
-<% layout('layouts/boilerplate')%>
-<div class="row">
+<% layout("layouts/boilerplate") %>
+
+<script src="/javascripts/locationGrabber.js"></script>
+
+<div class="row my-5">
     <h1 class="text-center">Ripeness Guesstimater V1</h1>
     <p class="text-center text-muted">We only accept jpgs right now. Sorry.</p>
-    <div class="col-md-6 offset-md-3">
+    <div class="col-md-6 offset-md-3 my-5">
         <form action="/bananatest" method="POST" novalidate class="validated-form" enctype="multipart/form-data">
             <div class="mb-6 pt-3">
                 <div class="mb-3">
-                    <!-- <label for="formFile" class="form-label">Choose Image</label> -->
-                    <input class="form-control" type="file" id="formFile" name="image">
+                    <input class="form-control" type="file" id="formFile" name="image" required>
                 </div>
-                <!-- <div class="form-file custom-file">
-                    <input type="file" class="form-file-input" id="image" name="image">
-                    <label class="form-file-label" for="image">
-                        <span class="form-file-text custom-file-label">Choose image...</span>
-                        <span class="form-file-button">Browse</span>
-                    </label>
-                </div> -->
             </div>
+            <input type="hidden" name="longitude" id="longitude" value="NIL">
+            <input type="hidden" name="latitude" id="latitude" value="NIL">
+            <input type="hidden" name="locationSent" id="locationSent" value="false">
+            <script>getLocation()</script>
             <div class="mb-3 pt-3">
                 <button class="btn btn-success">Check Banana</button>
             </div>

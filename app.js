@@ -9,20 +9,25 @@ const ejsMate = require('ejs-mate');
 const methodOverride = require('method-override');
 const passport = require("passport");
 const LocalStrategy  = require("passport-local");
-const Banana = require('./models/bananadata');
+const {Banana, Location} = require('./models/bananadata');
 const session = require('express-session');
 const flash = require('connect-flash');
 const ExpressError = require('./utils/ExpressError');
 //const imageClassification = require('./utils/MachineMagic');
 const fsExtra = require('fs-extra')
 const User = require("./models/user");
-const {isLoggedIn} = require("./middleware");
+const {isLoggedIn, isAuthor, validateBananatest} = require("./middleware");
 const catchAsync = require("./utils/catchAsync");
 const uuid = require('uuid');
+const geoip = require('geoip-lite');
 
 const MachineMagic = require("./machineMagic/pyintegrationv31");
 
 const multer = require('multer');
+
+const mbxGeocoding = require("@mapbox/mapbox-sdk/services/geocoding");
+const mapBoxToken = process.env.MAPBOX_TOKEN;
+const geocoder = mbxGeocoding({ accessToken: mapBoxToken });
 
 const cloudinary = require("cloudinary").v2;
 const {CloudinaryStorage} = require("multer-storage-cloudinary");
@@ -117,6 +122,7 @@ app.set('views', path.join(__dirname, 'views'))
 
 app.use(express.urlencoded({ extended: true }));
 app.use(methodOverride('_method'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 const sessionConfig = {
     store,
@@ -190,97 +196,29 @@ const storageLocal = multer.diskStorage({
 });
 const uploadLocal = multer({ storage: storageLocal });
 
-app.get('/', (req, res) => {
-    res.render("home");
+app.get('/', async (req, res) => {
+    let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+    if (ip == "::1") {
+        ip = "128.135.164.0";
+    };
+    const geo = geoip.lookup(ip);
+    const latlong = ((geo.ll == null) ? [41.789722, 41.789722] : geo.ll);
+
+    const bananadataset = await Banana.find({$or:[{ripeness: "freshunripe"}, {ripeness:"ripe"}]});
+    //console.log(bananadataset);
+    res.render("home", {latlong, bananadataset});
 });
 
 app.get('/bananatest', isLoggedIn, (req, res) => {
     res.render("bananas/bananatest");
 });
 
-/*
-function tryUploadSingle(req, res, next) {
-    try {
-        console.log("trying to upload picture");
-        upload.single("image");
-    } catch (error) {
-        console.log("picture upload error");
-        console.error(error);
-    }
-    next();
-};
-*/
-
-
-// Heroku has an issue with posting multipart forms, if interrupted by isLoggedIn there will be a H18 error, circumvented by ensuring logged in before posting
-
-/*
-app.post('/', isLoggedIn, uuidInSession, imageDoubleUpload, async (req, res, next) => {
-    while (req.session.presets === "notready") {
-        delete req.session.imageProcessing;
-        try {
-            if (req.session.imageType === ".jpg" || req.session.imageType === ".jpeg") { //|| req.session.imageType === ".png"
-                console.log("image classification in process");
-                console.log(req.session);
-                const imageName = await req.session.imageName;
-                console.log("imageclassification imageName:" + imageName);
-                const ripeness = await imageClassification(`uploads/${imageName}`);
-                //console.log(ripeness); 
-    
-                //deletes image after checking is complete
-                console.log("image removal in process");
-                fsExtra.remove(`uploads/${imageName}`);
-    
-                console.log("prediction assignment in process");
-                
-                const prediction = ripeness[0].className || "prediction error";
-                console.log("prediction" + prediction);
-                console.log("result rendering in process");
-                return res.render("bananas/results", {prediction});
-            } else {
-                console.log("image removal in process");
-                fsExtra.remove(`uploads/${req.session.imageName}`);
-                req.flash("error", "filetype not .jpg");
-                return res.redirect("/");
-            }  
-            //res.send("we are checking");
-        } catch (error) {
-            console.error(error);
-            next();
-        }
-    } else {
-        next();
-    }
-}) 
-*/
-
-
-/*
-function cloudUpload(req, res, next) {
-    console.log("uploadCloud staging");
-    const storageCloud = new CloudinaryStorage({
-        cloudinary,
-        params: {
-            folder: "GoingBananasV2",
-            allowedFormats: ["jpeg", "jpg"],
-            public_id: () => {req.session.imageName}
-        } 
-    });
-    const uploadCloud = multer({ storage: storageCloud });
-    console.log("uploadCloud in progress");
-    uploadCloud.single('image')(req, res, next);
-    console.log(req.session);
-    console.log(res.headersSent);
-    next();
-}
-*/
-
 function cloudUpload(req, res, next) {
     console.log("uploads/" + req.session.imageName);
     const publicID = req.session.imageName;
     cloudinary.uploader.upload("uploads/" + req.session.imageName, {
         folder: "GoingBananasV2",
-        allowedFormats: ["jpeg", "jpg"],
+        allowedFormats: ["jpeg", "jpg", "JPG", "JPEG"],
         public_id: publicID,
     }, function(error, result) {
         console.log(result, error); 
@@ -289,7 +227,15 @@ function cloudUpload(req, res, next) {
     });
 };
 
-app.post('/bananatest', uuidInSession, isLoggedIn, uploadLocal.single('image'), cloudUpload, async (req, res, next) => {
+app.post('/bananatest', uuidInSession, isLoggedIn, uploadLocal.single('image'), validateBananatest, cloudUpload, async (req, res, next) => {
+    let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
+    if (ip == "::1") {
+        ip = "128.135.164.0";
+    }
+    const geo = geoip.lookup(ip);
+    const latlong = geo.ll;
+    const bananadataset = await Banana.find({$or:[{ripeness: "freshunripe"}, {ripeness:"ripe"}]});
+    
     console.log(res.headersSent);
     try {
         console.log("header check 1:");
@@ -337,6 +283,45 @@ app.post('/bananatest', uuidInSession, isLoggedIn, uploadLocal.single('image'), 
 
             console.log(req.body);
 
+            locationData = new Location({
+                present: req.body.locationSent,
+                longitude: req.body.longitude, 
+                latitude: req.body.latitude    
+            });
+
+            if (req.body.locationSent === "true") {
+                console.log("location services allowed, using GPS to determine location");
+            } else {
+                console.log("location services not allowed, using IP to determine location");
+                let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
+                if (ip == "::1") {
+                    ip = "128.135.164.0";
+                }
+                const geo = geoip.lookup(ip);
+                const latlong = geo.ll;
+                locationData.present === "false";
+                locationData.longitude = latlong[1];
+                locationData.latitude = latlong[0];
+            }
+
+            await geocoder.reverseGeocode({
+                query: [parseFloat(locationData.longitude), parseFloat(locationData.latitude)]
+              })
+                .send()
+                .then(response => {
+                  // GeoJSON document with geocoding matches
+                  console.log(response);
+                  console.log(response.body);
+                  const locationGuess = response.body.features[0].place_name;
+                  req.session.locationGuess = locationGuess;
+                })
+                .catch((error) => {
+                    console.error(error);
+                    Error
+                  });
+
+            
+
             console.log("prediction assignment in process");
             
             const prediction = ripeness || "prediction error";
@@ -346,10 +331,20 @@ app.post('/bananatest', uuidInSession, isLoggedIn, uploadLocal.single('image'), 
             const bananaDataPoint = new Banana({
                 ripeness: prediction,
                 user: req.user.username,
+                location: locationData,
+                locationGuess: req.session.locationGuess,
                 date: Date.now(),
                 image: {
                     url: req.session.imageUrl, 
                     filename: req.session.imageName
+                },
+                sim: false,
+                geometry: {
+                    type: "Point",
+                    coordinates: [
+                        locationData.longitude, 
+                        locationData.latitude 
+                    ]
                 }
             });
             console.log(req.user);
@@ -360,7 +355,7 @@ app.post('/bananatest', uuidInSession, isLoggedIn, uploadLocal.single('image'), 
 
             console.log("result rendering in process");
             console.log(res.headersSent);
-            return res.render("bananas/results", {prediction});
+            return res.render("bananas/results", {prediction, latlong, bananadataset});
         } else {
             console.log("image removal in process");
             fsExtra.remove(`uploads/${req.session.imageName}`);
@@ -374,49 +369,25 @@ app.post('/bananatest', uuidInSession, isLoggedIn, uploadLocal.single('image'), 
     }
 });
 
-app.get("/posts", isLoggedIn, async (req, res) => {
-    const bananaDataPoints = await Banana.find({user: req.user.username});
-    console.log(bananaDataPoints);
-    res.render("bananas/posts", {bananaDataPoints});
+app.post("/delete", isLoggedIn, isAuthor, async (req, res) => {
+    const bananadatum = await Banana.findByIdAndDelete(req.body.id);
+    req.flash("success", "Successfully deleted bananadatum");
+    res.redirect("/posts");
 })
 
-/*
-app.post('/', isLoggedIn, uuidInSession, imageDoubleUpload, catchAsync(async (req, res) => {
-    // console.log("req.body:", req.body);
-    // console.log("req.files:", req.files);
-    // console.log("req.session:", req.session);
-    // console.log("req.user:", req.user);
-    try {
-        if (req.session.imageType === ".jpg" || req.session.imageType === ".jpeg") { //|| req.session.imageType === ".png"
-            console.log("image classification in process");
-            console.log(req.session);
-            const imageName = req.session.imageName;
-            console.log("imageclassification imageName:" + imageName);
-            const ripeness = await imageClassification(`uploads/${imageName}`);
-            //console.log(ripeness); 
-
-            //deletes image after checking is complete
-            console.log("image removal in process");
-            fsExtra.remove(`uploads/${imageName}`);
-
-            console.log("prediction assignment in process");
-            
-            const prediction = ripeness[0].className || "prediction error";
-            console.log("prediction" + prediction);
-            console.log("result rendering in process");
-            return res.render("bananas/results", {prediction});
-        } else {
-            console.log("image removal in process");
-            fsExtra.remove(`uploads/${req.session.imageName}`);
-            req.flash("error", "filetype not .jpg");
-            return res.redirect("/");
-        }  
-        //res.send("we are checking");
-    } catch (error) {
-        console.error(error);
+app.get("/posts", isLoggedIn, async (req, res) => {
+    let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
+    if (ip == "::1") {
+        ip = "128.135.164.0";
     }
-}));
-*/
+    const geo = geoip.lookup(ip);
+    const latlong = geo.ll;
+
+    const bananaDataPoints = await Banana.find({user: req.user.username});
+    console.log(bananaDataPoints);
+    res.render("bananas/posts", {latlong, bananaDataPoints});
+})
+
 
 app.get("/register", (req, res) => {
     res.render("users/register");
@@ -445,7 +416,7 @@ app.post("/register", catchAsync(async (req, res, next) => {
 
 app.get("/login", (req, res) => {
     res.render("users/login");
-})
+});
 
 app.post("/login", passport.authenticate("local", {failureFlash: true, failureRedirect: "/login"}), (req, res) => {
     req.flash("success", "welcome back!");
@@ -456,13 +427,13 @@ app.post("/login", passport.authenticate("local", {failureFlash: true, failureRe
     delete req.session.returnTo
     console.log("redirectUrl:" + redirectUrl);
     res.redirect(redirectUrl);
-})
+});
 
 app.get("/logout", (req, res) => {
     req.logout();
     req.flash("success", "Goodbye!");
     res.redirect('/');
-})
+});
 
 app.all('*', (req, res, next) => {
     next(new ExpressError('Page Not Found', 404));

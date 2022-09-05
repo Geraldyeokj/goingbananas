@@ -15,9 +15,9 @@ function promiseMaker(imgPath) {
             console.log("Relative img path:", relativeImgPath);
             var relativePyPath = path.join(__dirname, './angelModel3.py');
             console.log("Relative py path:", relativePyPath);
-            var relativeJsonPath = path.join(__dirname, './banana_model.json');
+            var relativeJsonPath = path.join(__dirname, './modelv2.json');
             console.log("Relative py path:", relativeJsonPath);
-            var relativeh5Path = path.join(__dirname, './banana_weights.h5');
+            var relativeh5Path = path.join(__dirname, './modelv2.h5');
             console.log("Relative py path:", relativeh5Path);
 
 

@@ -1,21 +1,39 @@
 <% layout("layouts/boilerplate") %> 
-<h1>Login</h1>
-<form action="/login" class="validated-form" method="POST" novalidate>
-    <div class="mb-3">
-        <label class="form-label" for="username">Username</label>
-        <input class="form-control" type="text" id="username" name="username" required>
-        <div class="valid-feedback">
-            Looks good!
+
+<div class="d-flex w-100" style="height: 100vh;">
+    <div class="bg-dark w-50 text-center overflow-hidden" style="align-items: center; height: 100vh;">
+        <div class="bg-light text-dark m-3" style='height: 80vh; border-radius: 21px 21px 21px 21px;'>
+            <div class="mx-auto my-auto">
+                <h2 class="display-5 mx-auto pt-5" style="width: 80%;">Login</h2>
+                <form action="/login" class="validated-form mx-auto pt-5" method="POST" style="width: 80%;" novalidate>
+                    <div class="mx-auto">
+                        <label class="form-label" for="username">Username</label>
+                        <input class="form-control" type="text" id="username" name="username" required>
+                        <div class="valid-feedback">
+                            Looks good!
+                        </div>
+                    </div>
+                    <div class="mx-auto">
+                        <label class="form-label" for="password">Password</label>
+                        <input class="form-control" type="password" id="password" name="password" required>
+                        <div class="valid-feedback">
+                            Looks good!
+                        </div>
+                    </div>
+                    <button class="btn btn-success mx-auto mt-5">Login</button>
+                </form>
+            </div>
         </div>
     </div>
-    <div class="mb-3">
-        <label class="form-label" for="password">Password</label>
-        <input class="form-control" type="password" id="password" name="password" required>
-        <div class="valid-feedback">
-            Looks good!
+
+    <div class="bg-dark w-50 text-center overflow-hidden " style="height: 100vh;">
+        <div class="bg-light text-dark m-3" style='height: 80vh; border-radius: 21px 21px 21px 21px;'>
+            <div class="mx-auto my-auto">
+                <h2 class="display-5 mx-auto pt-5" style="width: 80%;">New to bananatesting? Register here!</h2>
+                <a href="/register" class="bg-warning text-dark mx-auto mb-5 btn btn-primary shadow-none btn-lg mt-5" style="border: none; box-shadow: none; width: 80%;">
+                    Register
+                </a>
+            </div>
         </div>
     </div>
-    <button class="btn btn-success">Login</button>
-</form>
-<h2 class="pt-3 pb-3">New to bananatesting? Register here!</h2>
-<a href="/register" class="btn btn-warning">Register</a>
+</div>

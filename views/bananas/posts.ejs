@@ -1,32 +1,79 @@
 <% layout("layouts/boilerplate") %>
-<h1>All Your BananaTests</h1>
 
 <%if (bananaDataPoints) {%>
-    <div>
-        <a href="/" class="btn btn-warning">Do another BananaTest</a>
-    </div>
-    <%for (let bananaDataPoint of bananaDataPoints) {%>
-        <div class="card" mb-3>
-            <div class="row">
-                <div class="col-md-4">
-                    <img class="img-fluid" alt="" src="<%=bananaDataPoint.image[0].url%>">
-                </div>
-                <div class="col-md-8">
-                    <div class="card-body">
-                        <h5 class="card title">This Banana was <%= bananaDataPoint.ripeness %></h5>
-                        <p class="card-text">BananaTest Taken on: <%= Date(bananaDataPoint.date).toString(); %></p>
-                        <!-- <p class="card-text">
-                            <small class="text-muted">location</small>
-                        </p>
-                        <a class="btn btn-primary" href="/bananaspots/someid">View bananadatapoint</a> -->
+
+<div class="bg-dark w-100" style="height: 950px;">
+    <div class="row" style="height: 900px;">
+        <div class="bg-light col ml-3 my-3 mr-1" style="height: 900px; border-radius: 21px 21px 21px 21px;">
+            <div class="card text-center mt-3" style="border: none; height: 80px;">
+                <div class="row">
+                    <div>
+                        <h1>All Your BananaTests</h1>
                     </div>
                 </div>
             </div>
+            <div class="card text-center align-items-center" style="border: none; height: 70px;">
+                <div class="row">
+                    <div>
+                        <a href="/bananatest" class="btn btn-warning">Do another BananaTest</a>
+                    </div>
+                </div>
+            </div>
+            <div class="row overflow-scroll" style="height: 700px">
+                <%for (let bananaDataPoint of bananaDataPoints) {%>
+                    <div class="card" mb-3>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <img class="img-fluid" alt="" src="<%=bananaDataPoint.image[0].url%>">
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card title" style="border: none">This Banana was <%= bananaDataPoint.ripeness %></h5>
+                                    <p class="card-text">BananaTest Taken on: <% const bananaDate = new Date(bananaDataPoint.date) %> <%= bananaDate.toString()  %> </p>
+                                    <!-- <p class="card-text">
+                                        <small class="text-muted">location</small>
+                                    </p>
+                                    <a class="btn btn-primary" href="/bananaspots/someid">View bananadatapoint</a> -->
+                                    <form action="/delete" method="POST" novalidate class="validated-form">
+                                        <input type="hidden" name="id" id="id" value="<%= bananaDataPoint._id %>" required>
+                                        <div class="mb-3 pt-3">
+                                            <button class="btn btn-danger">Delete</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <%}%>
+            </div>
         </div>
-    <%}%>
+        <div class="bg-light col ml-1 my-3 mr-3" style="height: 900px; border-radius: 21px 21px 21px 21px;">
+            <div class="card text-center mt-3" style="border: none; height: 80px;">
+                <div class="row">
+                    <div>
+                        <h1>Map of your BananaTests</h1>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center justify-content-center pt-3">
+                <div id='map' class="col-md-6" style='width: 100%; height: 750px; border-radius: 21px 21px 21px 21px;'></div>
+            </div>
+
+            <script>
+                const geobanana = { features: <%- JSON.stringify(bananaDataPoints) %>}
+            </script>
+            
+            <script src='/javascripts/mapScript.js' long="<%= latlong[1] %>" lat="<%= latlong[0] %>" ripenessFilter=""></script>
+        </div>
+    </div>
+</div>
+
 <%} else {%>
     <div>
         <h2>You haven't done any BananaTests yet...</h2>
         <a href="/" class="btn btn-warning">Do one right now!</a>
     </div>
 <%}%>
+
+    
+    
